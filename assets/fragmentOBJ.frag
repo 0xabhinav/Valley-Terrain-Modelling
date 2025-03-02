@@ -1,4 +1,5 @@
-#version 330 core
+#version 300 es
+precision highp float;
 out vec4 fragColor;
 in vec4 color;
 in vec3 normal;
@@ -8,7 +9,7 @@ uniform sampler2D theTexture;
 uniform vec3 sunRayDirn;
 void main()
 {
-    vec4 fragColorTemp = mix(texture(theTexture,texCoord),color,0);
+    vec4 fragColorTemp = mix(texture(theTexture,texCoord),color,0.0);
     float ambient = 0.5;
     vec3 norm = normalize(normal);
     float diffuse = max(dot(norm,-sunRayDirn),0.0);

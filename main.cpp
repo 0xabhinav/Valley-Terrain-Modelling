@@ -1,9 +1,23 @@
 #include "data.cpp"
 #include "funcs.cpp"
-#include<bits/stdc++.h>
+#include <iostream>
+#include <iomanip>
+#include <vector>
+#include <string>
+#include <cmath>
+#include <cstdio>
+#include <algorithm>
+
+// Replace GL headers with Emscripten versions
+#ifdef __EMSCRIPTEN__
+#include <emscripten.h>
+#include <GLES3/gl3.h>
+#include <GL/glut.h>
+#else
 #include<GL/freeglut.h>
 #include<GL/glew.h>
 #include <glm/glm.hpp>
+#endif
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
 using namespace std;
@@ -35,27 +49,27 @@ void fps()
 			frame*1000.0/(Time-timebase));
 		timebase = Time;
 		frame = 0;
-        glutSetWindowTitle(s);
+        setWindowTitle(s);
 	}
 }
 void setup()
 {
-    vector<string> available_fonts = {"font.fnt","comic-sans.fnt","karumbi.fnt"};
+    vector<string> available_fonts = {"assets/font.fnt","assets/comic-sans.fnt","assets/karumbi.fnt"};
     font.loadFont(available_fonts[1]);
-    font.drawPrep(readFile("helptext.txt"),-.8,.8,1,-.8,.001,1.,0.,1.);
-    programID = LoadProgram("vertex.vs", "fragment.frag");
-    waterProgramID = LoadProgram("vertex.vs", "fragwater.frag");
-    texID = loadTexture("grass_ground.bmp");
+    font.drawPrep(readFile("assets/helptext.txt"),-.8,.8,1,-.8,.001,1.,0.,1.);
+    programID = LoadProgram("assets/vertex.vs", "assets/fragment.frag");
+    waterProgramID = LoadProgram("assets/vertex.vs", "assets/fragwater.frag");
+    texID = loadTexture("assets/grass_ground.bmp");
     // exit(0);
     terrainNumVertices = generateTerrain(terrainVAO);
     waterNumVertices = generateWater(waterVAO);
-    cloudTexID = loadTexture("cloud.png");
-    cloudProgramID = LoadProgram("vertexCloud.vs", "fragmentCloud.frag");
+    cloudTexID = loadTexture("assets/cloud.png");
+    cloudProgramID = LoadProgram("assets/vertexCloud.vs", "assets/fragmentCloud.frag");
     cloudVAO = setupClouds();
-    sunTexID = loadTexture("sun.png");
-    objNumVertices = loadOBJ("birch_tree.obj",objVAO);
-    objTexID = loadTexture("grass.bmp");
-    objProgramID = LoadProgram("vertex.vs", "fragmentOBJ.frag");
+    sunTexID = loadTexture("assets/sun.png");
+    objNumVertices = loadOBJ("assets/birch_tree.obj",objVAO);
+    objTexID = loadTexture("assets/grass.bmp");
+    objProgramID = LoadProgram("assets/vertex.vs", "assets/fragmentOBJ.frag");
     shadowTexID = GenShadows();
     timer(0);
     // mvp = projection * view * model;
@@ -75,10 +89,10 @@ void displayMe()
         glEnable( GL_BLEND );  
         glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
         if(wireframe)
-            glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);            
+            setPolygonMode(false);            
         font.drawNow();
         if(wireframe)
-            glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+            setPolygonMode(true);
         glDisable( GL_BLEND );  
     }
     drawSun(cloudVAO, cloudProgramID, sunTexID);
@@ -154,11 +168,11 @@ void keyboard(unsigned char c, int x, int y)
         wireframe = !wireframe;
         if(wireframe)
         {
-            glPolygonMode(GL_FRONT_AND_BACK,GL_LINE);
+            setPolygonMode(true);
         }
         else
         {
-            glPolygonMode(GL_FRONT_AND_BACK,GL_FILL);
+            setPolygonMode(false);
         }
         break;
         case 'c': mouseLock = !mouseLock;
@@ -203,7 +217,7 @@ void keyboard(unsigned char c, int x, int y)
 }
 void mousetoCenter()
 {
-    glutWarpPointer(centerX,centerY);
+    warpPointer(centerX,centerY);
 }
 void mouseFunc(int button, int state, int x, int y)
 {
@@ -269,11 +283,13 @@ int main(int argc, char **argv)
     glutCreateWindow("Valley Terrain Modelling");
     glutFullScreen();
     glutSetCursor(GLUT_CURSOR_NONE);
+    #ifndef __EMSCRIPTEN__
     GLenum glewError = glewInit();
     if(glewError!= GLEW_OK)
     {
         throw GlewInitError();
     }
+    #endif
     setup();
     glutReshapeFunc(changeSize);
     glutDisplayFunc(displayMe);

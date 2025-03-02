@@ -1,4 +1,27 @@
+# Ignore all files by default
 *
+
+# But allow directories to be tracked
 !*/
+
+# And allow files with extensions
 !*.*
+
+# Allow Dockerfiles
+!Dockerfile
+!*.Dockerfile
+
+# Ignore VS Code settings directory
 .vscode/
+
+# Ignore build files
+*.html
+*.js
+*.wasm
+*.data
+*.map
+*.js.map
+*.wasm.map
+*.data.map
+*.js.map
+*.wasm.map

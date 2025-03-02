@@ -4,7 +4,12 @@
 #include<string>
 #include<vector>
 #include<sstream>
+#ifdef __EMSCRIPTEN__
+#include <emscripten.h>
+#include <GLES3/gl3.h>
+#else
 #include<GL/glew.h>
+#endif
 #include<GL/gl.h>
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
@@ -16,6 +21,47 @@ using namespace std;
 extern GLuint programID;
 extern int centerX, centerY;
 extern void debugmat(glm::mat4 m);
+
+// Add these conditional implementations
+#ifdef __EMSCRIPTEN__
+// WebGL doesn't support polygon mode directly
+void setPolygonMode(bool wireframe) {
+    // In WebGL, wireframe rendering is typically done with GL_LINES instead
+    // or by using a special shader
+    wireframe = wireframe; // Just to avoid unused variable warning
+    // We'll handle this in the rendering code
+}
+
+// Replacement for setWindowTitle
+void setWindowTitle(const char* title) {
+    // In a web context, this could update the page title or a header element
+    emscripten_run_script_string(("document.title = '" + std::string(title) + "'").c_str());
+}
+
+// Replacement for warpPointer
+void warpPointer(int x, int y) {
+    // Web browsers don't allow programmatic mouse movement for security reasons
+    // We'll need an alternative approach
+}
+#else
+// Native implementations
+void setPolygonMode(bool wireframe) {
+    if(wireframe) {
+        glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+    } else {
+        glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+    }
+}
+
+void setWindowTitle(const char* title) {
+    glutSetWindowTitle(title);
+}
+
+void warpPointer(int x, int y) {
+    glutWarpPointer(x, y);
+}
+#endif
+
 //io funcs
 GLuint loadTexture(const string &fileName, GLenum repeatMode = GL_REPEAT)
 {
@@ -155,6 +201,7 @@ GLuint loadShader(const GLenum &type, const string &fileName)
     }
     return shaderID;
 }
+
 GLuint LoadProgram(const string &vertexShader, const string &fragmentShader)
 // Loads program with given shaders attached
 {
@@ -231,7 +278,7 @@ class Font{
     void loadFont(const string &fileName)
     {
         if(programID == 0)
-            this->programID = LoadProgram("font.vs","font.frag");
+            this->programID = LoadProgram("assets/font.vs","assets/font.frag");
         ifstream ifile(fileName);
         string s;
         getline(ifile, s); //ignore the info face...
@@ -555,7 +602,7 @@ GLuint setupClouds()
     glBindVertexArray(0);
     return VAO;
 }
-GLuint drawClouds(GLuint VAO, GLuint programID, GLuint texID)
+void drawClouds(GLuint VAO, GLuint programID, GLuint texID)
 {
     glUseProgram(programID);
     glBindTexture(GL_TEXTURE_2D, texID);
@@ -584,7 +631,7 @@ GLuint drawClouds(GLuint VAO, GLuint programID, GLuint texID)
     glBindVertexArray(0);
     glUseProgram(0);
 }
-GLuint drawSun(GLuint VAO, GLuint programID, GLuint texID)
+void drawSun(GLuint VAO, GLuint programID, GLuint texID)
 {
     glUseProgram(programID);
     glBindTexture(GL_TEXTURE_2D, texID);
@@ -609,7 +656,7 @@ GLuint drawSun(GLuint VAO, GLuint programID, GLuint texID)
     glBindVertexArray(0);
     glUseProgram(0);
 }
-GLuint drawOBJ(GLuint VAO, int numVertices, GLuint programID, GLuint texID, glm::vec3 tr, glm::mat4 model=glm::mat4(1.f), glm::mat4 view=::view, glm::mat4 projection=::projection, bool shadow=false)
+void drawOBJ(GLuint VAO, int numVertices, GLuint programID, GLuint texID, glm::vec3 tr, glm::mat4 model=glm::mat4(1.f), glm::mat4 view=::view, glm::mat4 projection=::projection, bool shadow=false)
 {
     glUseProgram(programID);
     if(!shadow)
@@ -688,7 +735,7 @@ int GenShadows(int width=800,int height=800)
     glm::mat4 model(1.f);
     glm::mat4 view = glm::lookAt(-10.f*sundirn,glm::vec3(0.f,0.f,0.f),glm::vec3(0.f,0.f,-1.f));
     glm::mat4 projection = glm::ortho(-INF,+INF,-INF,+INF, .1f, 100.f);
-    GLuint progID = LoadProgram("vertex.vs","shadowfrag.frag");
+    GLuint progID = LoadProgram("assets/vertex.vs","assets/shadowfrag.frag");
     glUseProgram(progID);
     glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT);
