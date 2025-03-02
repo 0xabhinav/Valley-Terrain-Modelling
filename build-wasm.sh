@@ -1,6 +1,16 @@
-#!/bin/bash
+#!/bin/sh
+
+# Make output directory if it doesn't exist
+mkdir -p output
+
+DEBUG=true
+DEBUG_FLAGS="-gsource-map -O0"
+RELEASE_FLAGS="-O2"
+
+FLAGS=$([ "$DEBUG" = true ] && echo "$DEBUG_FLAGS" || echo "$RELEASE_FLAGS")
+
 emcc -std=c++11 main.cpp \
-  -o valley_terrain.html \
+  -o output/valley_terrain.html \
   -s USE_GLFW=3 \
   -s WASM=1 \
   -s USE_WEBGL2=1 \
@@ -13,10 +23,9 @@ emcc -std=c++11 main.cpp \
   -s NO_EXIT_RUNTIME=1 \
   -s ASSERTIONS=1 \
   -sNO_DISABLE_EXCEPTION_CATCHING \
-  -g4 \
   -I. \
   -I$GLM_INCLUDE_PATH \
   -lglut \
   --preload-file assets \
-  -o valley_terrain.html \
-  -O0 && echo "Build complete. Output files: valley_terrain.html, valley_terrain.js, valley_terrain.wasm" || echo "Build failed"
+  -o output/valley_terrain.html \
+  $FLAGS && echo "Build complete. Output files: valley_terrain.html, valley_terrain.js, valley_terrain.wasm" || echo "Build failed"
