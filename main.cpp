@@ -75,6 +75,7 @@ void setup()
     timer(0);
     // mvp = projection * view * model;
 }
+
 void displayMe()
 {
     glEnable(GL_DEPTH_TEST);
@@ -336,6 +337,11 @@ int main(int argc, char **argv)
     glutMouseFunc(mouseFunc);
     glutMotionFunc(mouseMovement);
     glutPassiveMotionFunc(mouseMovement);
+    #ifdef __EMSCRIPTEN__
+    // For emscripten to render the terrain properly, we need this hack
+    displayMe();
+    glutReshapeWindow(glutGet(GLUT_SCREEN_WIDTH), glutGet(GLUT_SCREEN_HEIGHT));
+    #endif
     glutMainLoop();
     return 0;
 }

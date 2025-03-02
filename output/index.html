@@ -51,6 +51,9 @@
             // Hide loading screen when module is loaded
             Module.onRuntimeInitialized = function() {
                 document.getElementById('loading').style.display = 'none';
+                // Trigger the canvas resize
+                Module.canvas.width = Module.canvas.clientWidth;
+                Module.canvas.height = Module.canvas.clientHeight;
             };
         </script>
         <script async type="text/javascript" src="./valley_terrain.js"></script>
