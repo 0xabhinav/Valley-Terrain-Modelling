@@ -18,7 +18,7 @@ GLuint VAO, VBO, EBO, waterVAO, waterProgramID, programID, texID, terrainVAO, te
 GLuint scrwidth, scrheight;
 int frame = 0, Time = 0, timebase=0, centerX, centerY;
 const int FPS = 120;
-bool fullScreen = true, maxFPS = false, wireframe = false, showHelp = true, mouseLock = true;
+bool fullScreen = false, maxFPS = false, wireframe = false, showHelp = true, mouseLock = false;
 const float INF = 20;
 float pitch= 0.f,yaw=0.f;
 float scrollmult=.3f;

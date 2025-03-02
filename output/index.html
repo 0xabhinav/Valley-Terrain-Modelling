@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8">
+        <meta http-equiv="X-UA-Compatible" content="chrome=1, IE=edge">
+        <title>Valley Terrain Modelling</title>
+        <style>
+            .fullwindow {
+                position: absolute;
+                top: 0px;
+                left: 0px;
+                margin: 0px;
+                border: 0;
+                width: 100%;
+                height: 100%;
+                overflow: hidden;
+                display: block;
+            }
+            
+            #loading {
+                position: absolute;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                display: flex;
+                flex-direction: column;
+                justify-content: center;
+                align-items: center;
+                background-color: #FFFFFF;
+                z-index: 100;
+            }
+            
+            #loading img {
+                max-width: 150px; /* Adjust as needed */
+            }
+        </style>
+    </head>
+    <body style="background-color: #FFFFFF;">
+        <!-- Loading screen -->
+        <div id="loading">
+            <img src="./loading.gif" alt="Loading...">
+            <p>Loading...</p>
+        </div>
+        
+        <canvas class="fullwindow" id="canvas"></canvas>
+        <script type="text/javascript">
+            var Module = {};
+            Module.canvas = document.getElementById('canvas');
+            
+            // Hide loading screen when module is loaded
+            Module.onRuntimeInitialized = function() {
+                document.getElementById('loading').style.display = 'none';
+                // Trigger the canvas resize
+                Module.canvas.width = Module.canvas.clientWidth;
+                Module.canvas.height = Module.canvas.clientHeight;
+            };
+        </script>
+        <script async type="text/javascript" src="./valley_terrain.js"></script>
+    </body>
+</html>
