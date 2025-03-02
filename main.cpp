@@ -281,14 +281,16 @@ int main(int argc, char **argv)
     glutInit(&argc,argv);
     glutInitDisplayMode(GLUT_DOUBLE|GLUT_RGBA|GLUT_DEPTH);
     glutCreateWindow("Valley Terrain Modelling");
-    glutFullScreen();
-    glutSetCursor(GLUT_CURSOR_NONE);
     #ifndef __EMSCRIPTEN__
-    GLenum glewError = glewInit();
-    if(glewError!= GLEW_OK)
-    {
-        throw GlewInitError();
-    }
+        glutFullScreen();
+        fullScreen = true;
+        glutSetCursor(GLUT_CURSOR_NONE);
+        mouseLock = true;
+        GLenum glewError = glewInit();
+        if(glewError!= GLEW_OK)
+        {
+            throw GlewInitError();
+        }
     #endif
     setup();
     glutReshapeFunc(changeSize);

@@ -582,12 +582,18 @@ GLuint generateWater(GLuint &VAO, float delta = 1, float startx = 0, float endx 
 }
 GLuint setupClouds()
 {
-    float vertices[20] = {
-    -1.50, 1.50, 1.50,0.0,0.0,
-     1.50, 1.50, 1.50,1.0,0.0,
-     1.50, 1.50,-1.50,1.0,1.0,
-    -1.50, 1.50,-1.50,0.0,1.0,
+    // Convert quad to two triangles for WebGL compatibility
+    float vertices[] = {
+        // First triangle
+        -1.50, 1.50, 1.50, 0.0, 0.0,
+         1.50, 1.50, 1.50, 1.0, 0.0,
+        -1.50, 1.50,-1.50, 0.0, 1.0,
+        // Second triangle
+         1.50, 1.50, 1.50, 1.0, 0.0,
+         1.50, 1.50,-1.50, 1.0, 1.0,
+        -1.50, 1.50,-1.50, 0.0, 1.0
     };
+
     GLuint VAO, VBO;
     glGenBuffers(1, &VBO);
     glGenVertexArrays(1, &VAO);
@@ -625,7 +631,7 @@ void drawClouds(GLuint VAO, GLuint programID, GLuint texID)
         // cout<<scaleFac<<endl;
         // debugmat(model);
         glUniformMatrix4fv(glGetUniformLocation(programID, "model"), 1, GL_FALSE, glm::value_ptr(model));
-        glDrawArrays(GL_QUADS, 0, 4);
+        glDrawArrays(GL_TRIANGLES, 0, 6);
     }
     glDisable(GL_BLEND);  
     glBindVertexArray(0);
@@ -651,7 +657,7 @@ void drawSun(GLuint VAO, GLuint programID, GLuint texID)
     // cout<<scaleFac<<endl;
     // debugmat(model);
     glUniformMatrix4fv(glGetUniformLocation(programID, "model"), 1, GL_FALSE, glm::value_ptr(model));
-    glDrawArrays(GL_QUADS, 0, 4);
+    glDrawArrays(GL_TRIANGLES, 0, 6);
     glDisable(GL_BLEND);  
     glBindVertexArray(0);
     glUseProgram(0);
