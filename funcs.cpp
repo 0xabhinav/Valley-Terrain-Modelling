@@ -92,61 +92,177 @@ GLuint loadTexture(const string &fileName, GLenum repeatMode = GL_REPEAT)
     stbi_image_free(data);
     return texID;
 }
+
 GLuint loadOBJ(const string &fileName, GLuint &VAO)
 {
     glm::vec4 color(35.f/255.f,12.f/255.f,27.f/255.f,1.f);
-    ifstream inFile(fileName.c_str());
+    
+    // Read entire file into memory at once
+    ifstream inFile(fileName.c_str(), ios::binary | ios::ate);
     if(!inFile.is_open())
     {
         throw FileOpenError();
     }
-    string line;
-    vector<glm::vec3> v,vn;
+    
+    // Get file size and allocate buffer
+    size_t fileSize = inFile.tellg();
+    inFile.seekg(0, ios::beg);
+    
+    vector<char> buffer(fileSize + 1);
+    inFile.read(buffer.data(), fileSize);
+    buffer[fileSize] = '\0'; // Null terminator
+    inFile.close();
+    
+    // Prepare data structures with estimated capacity
+    vector<glm::vec3> v, vn;
     vector<glm::vec2> vt;
     vector<vertex> data;
-    while(getline(inFile, line))
-    {
-        stringstream tmp;
-        if(line[0]=='#'||line[0]=='o')
+    v.reserve(fileSize / 100);
+    vn.reserve(fileSize / 100);
+    vt.reserve(fileSize / 100);
+    data.reserve(fileSize / 50);
+    
+    // Custom fast parsing
+    char* p = buffer.data();
+    char* end = p + fileSize;
+    
+    while (p < end) {
+        // Skip whitespace
+        while (p < end && (*p == ' ' || *p == '\t' || *p == '\r')) p++;
+        
+        // Check line type
+        if (p >= end || *p == '\n') {
+            p++;
             continue;
-        tmp<<line;
-        glm::vec3 val;
-        tmp>>line;
-        if(line=="vn"||line=="v")
-        {
-            tmp>>val.x>>val.y>>val.z;
-            if(line=="v")
-            {
-                v.push_back(val);
+        }
+        
+        if (*p == '#' || *p == 'o') {
+            // Skip comment or object name
+            while (p < end && *p != '\n') p++;
+            p++;
+            continue;
+        }
+        
+        if (*p == 'v') {
+            p++; // Skip 'v'
+            
+            if (*p == 'n') {
+                // Normal vector
+                p++; // Skip 'n'
+                
+                // Parse coordinates with manual fast parsing
+                float x, y, z;
+                while (*p == ' ') p++; // Skip spaces
+                x = strtof(p, &p);
+                while (*p == ' ') p++; // Skip spaces
+                y = strtof(p, &p);
+                while (*p == ' ') p++; // Skip spaces
+                z = strtof(p, &p);
+                
+                vn.push_back({x, y, z});
             }
-            else if(line=="vn")
-            {
-                vn.push_back(val);
+            else if (*p == 't') {
+                // Texture coordinate
+                p++; // Skip 't'
+                
+                // Parse coordinates
+                float x, y;
+                while (*p == ' ') p++; // Skip spaces
+                x = strtof(p, &p);
+                while (*p == ' ') p++; // Skip spaces
+                y = strtof(p, &p);
+                
+                vt.push_back({x, y});
+            }
+            else if (*p == ' ' || *p == '\t') {
+                // Vertex position
+                // Parse coordinates
+                float x, y, z;
+                while (*p == ' ') p++; // Skip spaces
+                x = strtof(p, &p);
+                while (*p == ' ') p++; // Skip spaces
+                y = strtof(p, &p);
+                while (*p == ' ') p++; // Skip spaces
+                z = strtof(p, &p);
+                
+                v.push_back({x, y, z});
             }
             
+            // Skip to next line
+            while (p < end && *p != '\n') p++;
+            p++;
         }
-        else if(line=="vt")
-        {
-            tmp>>val.x>>val.y;
-            vt.push_back(glm::vec2(val));
+        else if (*p == 'f' && (*(p+1) == ' ' || *(p+1) == '\t')) {
+            p++; // Skip 'f'
+            while (*p == ' ' || *p == '\t') p++; // Skip spaces
+            
+            // Parse face indices - handle up to 3 vertices per face
+            // Format: f v1/vt1/vn1 v2/vt2/vn2 v3/vt3/vn3
+            int indices[9]; // v1,vt1,vn1, v2,vt2,vn2, v3,vt3,vn3
+            
+            for (int i = 0; i < 3; i++) {
+                // Parse vertex index
+                indices[i*3] = strtol(p, &p, 10) - 1; // Convert to 0-indexed
+                
+                if (*p == '/') {
+                    p++; // Skip '/'
+                    
+                    // Parse texcoord index (if present)
+                    if (*p != '/') {
+                        indices[i*3+1] = strtol(p, &p, 10) - 1;
+                    } else {
+                        indices[i*3+1] = 0; // Default
+                    }
+                    
+                    if (*p == '/') {
+                        p++; // Skip '/'
+                        // Parse normal index
+                        indices[i*3+2] = strtol(p, &p, 10) - 1;
+                    }
+                }
+                
+                // Skip to next vertex or end of line
+                while (*p == ' ' || *p == '\t') p++;
+            }
+            
+            // Add triangle vertices to the data array
+            for (int i = 0; i < 3; i++) {
+                int vIdx = indices[i*3];
+                int vtIdx = indices[i*3+1];
+                int vnIdx = indices[i*3+2];
+                
+                data.push_back({
+                    v[vIdx].x, v[vIdx].y, v[vIdx].z,
+                    color.x, color.y, color.z, color.w,
+                    vn[vnIdx].x, vn[vnIdx].y, vn[vnIdx].z,
+                    // vtIdx >= 0 && vtIdx < vt.size() ? vt[vtIdx].x : 0.0f,
+                    // vtIdx >= 0 && vtIdx < vt.size() ? vt[vtIdx].y : 0.0f
+                    // HACK: This is wrong but looks better xD
+                    v[vtIdx].x,
+                    v[vtIdx].y
+                });
+            }
+            
+            // Skip to next line
+            while (p < end && *p != '\n') p++;
+            p++;
         }
-        else if(line=="f")
-        {
-            char c;
-            tmp>>val.x>>c>>val.y>>c>>val.z;
-            data.push_back({v[val.x-1].x,v[val.x-1].y,v[val.x-1].z,color.x,color.y,color.z,color.w,vn[val.y-1].x,vn[val.y-1].y,vn[val.y-1].z,v[val.z-1].x,v[val.z-1].y});
-            tmp>>val.x>>c>>val.y>>c>>val.z;
-            data.push_back({v[val.x-1].x,v[val.x-1].y,v[val.x-1].z,color.x,color.y,color.z,color.w,vn[val.y-1].x,vn[val.y-1].y,vn[val.y-1].z,v[val.z-1].x,v[val.z-1].y});
-            tmp>>val.x>>c>>val.y>>c>>val.z;
-            data.push_back({v[val.x-1].x,v[val.x-1].y,v[val.x-1].z,color.x,color.y,color.z,color.w,vn[val.y-1].x,vn[val.y-1].y,vn[val.y-1].z,v[val.z-1].x,v[val.z-1].y});
+        else {
+            // Unknown line type, skip
+            while (p < end && *p != '\n') p++;
+            p++;
         }
     }
+    
+    // Setup OpenGL buffers with single allocation for all data
     GLuint VBO;
     glGenBuffers(1, &VBO);
     glGenVertexArrays(1, &VAO);
     glBindVertexArray(VAO);
     glBindBuffer(GL_ARRAY_BUFFER, VBO);
     glBufferData(GL_ARRAY_BUFFER, sizeof(vertex)*data.size(), data.data(), GL_STATIC_DRAW);
+    
+    // Configure vertex attributes
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(data[0]), 0);    
     glEnableVertexAttribArray(0);
     glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, sizeof(data[0]), (GLvoid*)(sizeof(float)*3));
@@ -155,10 +271,13 @@ GLuint loadOBJ(const string &fileName, GLuint &VAO)
     glEnableVertexAttribArray(2);
     glVertexAttribPointer(3, 2, GL_FLOAT, GL_FALSE, sizeof(data[0]), (GLvoid*)(sizeof(float)*10));
     glEnableVertexAttribArray(3);
+    
     glBindBuffer(GL_ARRAY_BUFFER, 0);
     glBindVertexArray(0);
+    
     return data.size();
 }
+
 const string readFile(const string &fileName)
 {
     ifstream inFile(fileName.c_str());
