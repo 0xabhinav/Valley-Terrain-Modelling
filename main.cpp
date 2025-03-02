@@ -11,6 +11,7 @@
 // Replace GL headers with Emscripten versions
 #ifdef __EMSCRIPTEN__
 #include <emscripten.h>
+#include <emscripten/html5.h>
 #include <GLES3/gl3.h>
 #include <GL/glut.h>
 #else
@@ -105,6 +106,17 @@ void displayMe()
         glutPostRedisplay();
     fps();
 }
+
+#ifdef __EMSCRIPTEN__
+void emscriptenMouseLock() {
+    if (mouseLock) {
+        emscripten_request_pointerlock("#canvas", true);
+    } else {
+        emscripten_exit_pointerlock();
+    }
+}
+#endif
+
 void keyboard(unsigned char c, int x, int y)
 {
     // io.lock();
@@ -178,10 +190,16 @@ void keyboard(unsigned char c, int x, int y)
         case 'c': mouseLock = !mouseLock;
         if(mouseLock)
         {
+            #ifdef __EMSCRIPTEN__
+            emscriptenMouseLock();
+            #endif
             glutSetCursor(GLUT_CURSOR_NONE);
         }
         else
         {
+            #ifdef __EMSCRIPTEN__
+            emscriptenMouseLock();
+            #endif
             glutSetCursor(GLUT_CURSOR_LEFT_ARROW);
         }
         break;
@@ -242,6 +260,19 @@ void mouseFunc(int button, int state, int x, int y)
     }
     clampCam(camera);
 }
+
+void computeYawPitch(float dx, float dy) {
+    float sensitivity = 0.1f;
+    dx *= sensitivity;
+    dy *= sensitivity;
+    yaw += dx;
+    pitch -= dy;
+    if (pitch > 89.0f)
+        pitch = 89.0f;
+    if (pitch < -89.0f)
+        pitch = -89.0f;
+}
+
 void mouseMovement(int x, int y) 
 {
     static bool warpCall = true;
@@ -254,17 +285,10 @@ void mouseMovement(int x, int y)
         lasty = centerY;
         return;
     }
-    lastx = (float)x - lastx;
-    lasty = (float)y - lasty;
-    float sensitivity = 0.1f;
-    lastx *= sensitivity;
-    lasty *= sensitivity;
-    yaw += lastx;
-    pitch -= lasty;
-    if (pitch > 89.0f)
-        pitch = 89.0f;
-    if (pitch < -89.0f)
-        pitch = -89.0f;
+    float dx = (float)x - lastx;
+    float dy = (float)y - lasty;
+    computeYawPitch(dx, dy);
+    #ifndef __EMSCRIPTEN__
     if(mouseLock)
     {
         mousetoCenter();
@@ -272,9 +296,20 @@ void mouseMovement(int x, int y)
         x = 10;
         y = 10;
     }
+    #endif
+
     lastx = (float)x;
     lasty = (float)y;
 }
+
+#ifdef __EMSCRIPTEN__
+EM_BOOL emscriptenResizeCallback(int eventType, const EmscriptenUiEvent *uiEvent, void *userData)
+{
+    glutReshapeWindow(uiEvent->windowInnerWidth, uiEvent->windowInnerHeight);
+    return EM_TRUE;
+}
+#endif
+
 int main(int argc, char **argv)
 {
     float val = height(10,10);
@@ -291,6 +326,8 @@ int main(int argc, char **argv)
         {
             throw GlewInitError();
         }
+    #else
+        emscripten_set_resize_callback(EMSCRIPTEN_EVENT_TARGET_WINDOW, NULL, EM_FALSE, emscriptenResizeCallback);
     #endif
     setup();
     glutReshapeFunc(changeSize);
